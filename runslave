@@ -1,0 +1,9 @@
+#!/bin/bash
+
+ADDR="239.0.1.23"
+PORT=1234
+BUFSIZE=200000  #400000  #1200000
+URL="udp://${ADDR}:${PORT}?buffer_size=${BUFSIZE}B"
+
+echo "[ $(hostname) ]  Listening on UDP"
+pwomxplayer -A $URL

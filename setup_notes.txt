@@ -1,0 +1,172 @@
+[[[  PiWall Setup  ]]]
+
+1. Master pi is router and DHCP server, informs all slaves of their address
+2. Master acts a bridge and the slaves learn their addresses from router
+
+
+Slave pis on 192.168.2.X subnetwork
+
+Master will have wlan0 address 192.168.1.X, and eth0 address 192.168.2.1 — broadcasting on 192.168.2.255, gateway being 192.168.1.1 router
+
+
+
+—————————
+0. First enable SSH, then connect WIFI for new Pi
+1. Run configpizerow.py (with sudo, give pinumber as arg)
+2. Add this line to sudoers via visudo:  pi[pinum, i.e. pi0 or pi1] ALL=(ALL:ALL) ALL
+3. Reboot & login as pi[n] w/ password sh00k
+4. scp over setup scripts
+5. Run install.sh
+6. Run makepiwall.py (give pinumber as arg unless master)
+7. scp over video file
+8. test video:  omxplayer movie.avi   or  pwomxplayer —tile-code=42 movie.avi
+—————————
+
+Streaming the video:
+    ⁃   On slaves run
+pwomxplayer -A udp://239.0.1.23:1234?buffer_size=1200000B
+^^ (./runslave)
+
+    ⁃   Then on master run (perhaps try streaming from Ubuntu VM)
+avconv -flags loop -re -i ElephantsDream.mp4 -vcodec copy -f avi -an udp://239.0.1.23:/1234
+^^ (./runmaster)
+^^^^ -qscale 4 ?
+^^^^ -movflags frag_keyframe+empty_moov ?
+^^^^ -c:v libx264 ?
+
+
+average fps of video stream = 6     
+average bitrate of video stream = 2035kbits/s
+
+LAUNCHING SLAVES REMOTELY:
+pssh -H pi11@pi111.local -x "-t -o StrictHostKeyChecking=no" -A "pwomxplayer -A ElephantsDream.mp4 &"
+
+pssh -i -t 0 -h backwall -x "-t -o StrictHostKeyChecking=no" -A "pwomxplayer -A ElephantsDream.mp4 &"
+———
+Start slaves listening:
+    pssh -i -t 0 -h backwall -x "-t -o StrictHostKeyChecking=no" -A "pwomxplayer -A udp://239.0.1.23:1234?buffer_size=200000B &"
+
+Start master multicast:
+    pssh -i -t 0 -H master@192.168.1.100 -x "-t -o StrictHostKeyChecking=no -t" -A "./runmaster ElephantsDream.mov "
+
+^ works wonderfully from host Mac
+[ just call ‘./startwall’ from one terminal window and then ‘./startmaster’ from another ]
+
+TO STOP STREAM ON ALL SLAVES:  [ ‘./stopwall’ ]
+pssh -i -h backwall -x "-o StrictHostKeyChecking=no" -A "pkill pwomxplayer"
+
+To stop multicast on master:
+    sshpass -p sh00k ./stopwall
+or
+    python3 sendcmdtoall.py sshpass -p sh00k sudo reboot
+
+BEST COURSE OF ACTION MAY BE TO SIMPLY SAVE THE VIDEO ON EACH OF THE INDIVIDUAL SLAVES AND HAVE THEM PLAY THE FILE LOCALLY
+(using pwomxplayer, called remotely via sshpass—>pssh)
+
+./startmaster —> python3 videoloop.py on all slaves
+./runmaster —> begin streaming video file to slaves via UDP
+
+—————————
+
+TO INSPECT THE NETWORK:         arp -a
+^ for in-use IP addresses
+
+—————————
+
+TO SET UP COMPONENT VIDEO OUTPUT:
+In /boot/config.txt
+    ⁃   uncomment ‘sdtv_mode=2’
+    ⁃   comment ‘hdmi_force_hotplug=1’
+
+—————————
+
+FOR STATIC IP:
+
+Modify /etc/wpa_supplicant/wpa_supplicant.conf:
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=US
+
+network={
+    ssid="ESSID"
+    psk="Your_wifi_password"
+    scan_ssid=1  # <— if need to connect to a private network (i.e. no broadcast SSID)
+}
+
+
+Leave /etc/network/interfaces alone (keep default)
+
+Modify /etc/dhcpcd.conf:
+
+sudo echo -e “\ninterface wlan0\nstatic ip_address=192.168.1.29/24\nstatic routers=192.168.1.1\nstatic domain_name_servers=192.168.1.1” >> /etc/dhcpcd.conf
+
+==============================================
+CHANGE HOSTNAME:
+sudo echo “halfwaycrooks” > /etc/hostname
+sudo echo -e “\n192.168.1.29 halfwaycrooks” >> /etc/hosts
+==============================================
+NEW USER:
+sudo adduser pi29
+
+ADD TO SUDOERS:
+sudo visudo
+
+REMOVE OLD USR:
+sudo userdel -r pi
+
+
+#####################################################################
+4 rows x 3 columns
+48.75” x 57”                 —> 4875 x 5700
+123.825cm x 144.78cm
+1238.25mm x 1447.8mm
+
+Each screen is 16.25” wide, 14.25” tall
+                        —> 1625 x 1425
+Each tube’s bezel (surrounding plastic frame) is ~1.5”
+
+
+====================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Pi IDs:
+master@piwall => 192.168.54.254 (wlan0 static) && 192.168.2.1 (eth0)
+pi1@pi201   => 192.168.2.201   /24
+pi2@pi202  => 192.168.2.202  /24
+pi3@pi203  => 192.168.2.203  /24
+pi4@pi204  => 192.168.2.204  /24
+pi5@pi205  => 192.168.2.205  /24
+pi6@pi206  => 192.168.2.206  /24
+pi7@pi207  => 192.168.2.207   /24
+pi8@pi208  => 192.168.2.208  /24
+pi9@pi209  => 192.168.2.209  /24
+pi10@pi210 => 192.168.2.210  /24
+pi11@pi211  => 192.168.2.211   /24
+pi12@pi212 => 192.168.2.212   /24
+
+    •   (see backwall)
+———————————————————————
+MP4 (.mp4) = MP4 video format (.mpeg4/.h264 video codec) + audio format (mp3, aac, etc.) + subtitle
+AVI (.avi) = MP4 video format (.mpeg4/.h264 video codec) + audio format (mp3, aac, etc.) + subtitle
+MKV (.mkv) = MP4 video format (.mpeg4/.h264 video codec) + audio format (mp3, aac, etc.) + subtitle
+
+    •   NOTE: if audio output is required, give pwomxplayer the argument ‘-o local’
+
+
+_____________________________________________________
+For setting up master pi:
+    •   make user ‘master’, set hostname, etc.
+    •    [see note titled ‘Master pi is router and…’]
+    •   if using Debian 10 (Buster), avconv (libav-tools) is unavailable, so replace all avconv commands with ffmpeg
+    •   run toggle_mode_to_LCD.sh
+    •
+
+
+### Sources
+http://www.piwall.co.uk/information/installation
+http://www.piwall.co.uk/information/configuration-file
+http://matthewepler.github.io/2016/01/05/piwall.html
+https://sharmamohit.com/work/project/vizwall/ ********
+http://portal.desktopgridfederation.org/web/dutch-chapter/video-wall
+https://www.rossmonroe.com/red-bull-pi-wall
+

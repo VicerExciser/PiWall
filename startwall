@@ -1,0 +1,33 @@
+#!/bin/bash
+
+## Launch pwomxplayer client on each slave && stream video (give filename as arg) from master
+
+##sshpass -p sh00k parallel-ssh -i -t 0 -h backwall -x "-t -o StrictHostKeyChecking=no" -A "pwomxplayer -A $(1) &"
+
+#sleep 3s
+
+#sshpass -p sh00k parallel-ssh -i -t 0 -h backwall -x "-t -o StrictHostKeyChecking=no" -A "toilet -f big -t -F border '[[   N 0  B 4 D  M 3 M 0 R 1 3 5   ]]' && pwomxplayer -A udp://239.0.1.23:1234?buffer_size=200000B &"
+sshpass -p sh00k parallel-ssh -i -t 30 -h backwall -x "-t -t -o StrictHostKeyChecking=no" -A "bash runslave"
+
+sleep 15s
+#echo "[[   N 0  B 4 D   M 3 M 0 R 1 3 5    ]]"
+toilet -f big -t -F border '[[   N 0  B 4 D  M 3 M 0 R 1 3 5   ]]'
+#avconv -re -i "$1" -vcodec copy -f avi -an udp://239.0.1.23:1234
+if [[ $# -eq 2 ]]; then
+  bash /home/master/runmaster "$1"
+else
+  #bash runmaster "movies/HC_TEST_QUART-rez_8TBR.mp4"
+  #bash runmaster "movies/VID_sheep-by-sea_1.mp4"
+  #python3 /home/master/playlist.py
+  bash /home/master/autorun.sh
+fi
+
+
+
+
+##/usr/bin/parallel-ssh -i -h backwall -x "-t -o StrictHostKeyChecking=no" -A "pwomxplayer -A ElephantsDream.mp4 &"
+
+#sshpass -p sh00k parallel-ssh -i -t 0 -h backwall -x "-t -t -o StrictHostKeyChecking=no" -A "bash looptest &"
+#sshpass -p sh00k parallel-ssh -i -t 0 -h backwall -x "-t -t -o StrictHostKeyChecking=no" -A "bash looptest && exit"
+
+

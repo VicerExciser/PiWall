@@ -1,0 +1,6 @@
+#!/bin/bash
+## stopwall
+
+#pssh -i -h backwall -x "-T -o StrictHostKeyChecking=no" -A "pkill pwomxplayer"
+
+sshpass -p sh00k parallel-ssh -i -h backwall -x "-T -o StrictHostKeyChecking=no" -A "pkill pwomxplayer"
